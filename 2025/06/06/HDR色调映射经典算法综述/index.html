@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Taubor">
+  <meta name="keywords" content="HDR,色调映射,Tone Mapping,Reinhard,Durand,Fattal,计算摄影,摄影学">
+  <meta name="description" content="深入解析HDR色调映射领域的经典算法：从Reinhard全局算子、Durand双边滤波局部算子，到Fattal梯度域方法与深度学习方案，附伪代码、数学模型与完整引用。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HDR色调映射经典算法综述">
+<meta property="og:url" content="https://tauborzhang.github.io/2025/06/06/HDR%E8%89%B2%E8%B0%83%E6%98%A0%E5%B0%84%E7%BB%8F%E5%85%B8%E7%AE%97%E6%B3%95%E7%BB%BC%E8%BF%B0/index.html">
+<meta property="og:site_name" content="Taubor">
+<meta property="og:description" content="深入解析HDR色调映射领域的经典算法：从Reinhard全局算子、Durand双边滤波局部算子，到Fattal梯度域方法与深度学习方案，附伪代码、数学模型与完整引用。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-06-06T00:00:00.000Z">
+<meta property="article:modified_time" content="2025-06-06T00:00:00.000Z">
+<meta property="article:author" content="Taubor">
+<meta property="article:tag" content="颜色科学">
+<meta property="article:tag" content="HDR">
+<meta property="article:tag" content="Tone Mapping">
+<meta property="article:tag" content="HDR">
+<meta name="twitter:card" content="summary_large_image">
+  <title>HDR色调映射经典算法综述 - Taubor</title>
+  <link rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+  <link rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+  <link rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+  <link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+  <link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+  <link rel="stylesheet" href="/css/main.css" />
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"tauborzhang.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":"UquWwkgz9AwjqWrZ7ri4KzgA-gzGzoHsz","app_key":"CmP1ig7lMEE9eyUUR3J3nfoz","server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/color-schema.js"></script>
+<meta name="generator" content="Hexo 7.3.0"></head>
+<body>
+<header>
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/"><strong>Taubor</strong></a>
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        <li class="nav-item"><a class="nav-link" href="/" target="_self"><i class="iconfont icon-home-fill"></i><span>首页</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="/archives/" target="_self"><i class="iconfont icon-archive-fill"></i><span>归档</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="/categories/" target="_self"><i class="iconfont icon-category-fill"></i><span>分类</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="/tags/" target="_self"><i class="iconfont icon-tags-fill"></i><span>标签</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="/about/" target="_self"><i class="iconfont icon-user-fill"></i><span>关于</span></a></li>
+        <li class="nav-item" id="search-btn"><a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search"><i class="iconfont icon-search"></i></a></li>
+        <li class="nav-item" id="color-toggle-btn"><a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle"><i class="iconfont icon-dark" id="color-toggle-icon"></i></a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div id="banner" class="banner" parallax=true style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2"><span id="subtitle" data-typed-text="HDR色调映射经典算法综述"></span></div>
+        <div class="mt-3">
+          <span class="post-meta"><i class="iconfont icon-date-fill" aria-hidden="true"></i><time datetime="2025-06-06 00:00" pubdate>2025年6月6日</time></span>
+        </div>
+        <div class="mt-1">
+          <span class="post-meta mr-2"><i class="iconfont icon-chart"></i>9k 字</span>
+          <span class="post-meta mr-2"><i class="iconfont icon-clock-fill"></i>33 分钟</span>
+          <span id="leancloud-page-views-container" class="post-meta" style="display: none"><i class="iconfont icon-eye" aria-hidden="true"></i><span id="leancloud-page-views"></span> 次</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</header>
+<main>
+<div class="container-fluid nopadding-x">
+<div class="row nomargin-x">
+<div class="side-col d-none d-lg-block col-lg-2"></div>
+<div class="col-lg-8 nopadding-x-md">
+<div class="container nopadding-x-md" id="board-ctn">
+<div id="board">
+<article class="post-content mx-auto">
+<h1 id="seo-header">HDR色调映射经典算法综述</h1>
+<div class="markdown-body">
+
+<blockquote>
+<p><strong>摘要：</strong>高动态范围（HDR）成像技术能捕捉远超传统传感器瞬时动态范围的场景亮度信息，但HDR内容在LDR显示设备上的呈现必须通过色调映射（Tone Mapping）实现动态范围压缩。本文系统综述该领域的经典算法：涵盖Reinhard全局摄影学算子、Durand-Dorsey双边滤波局部算子、Fattal梯度域方法、Farbman WLS多尺度分解，以及基于深度学习的现代方案。每种算法附有数学模型、伪代码、代表性引用和适用场景分析。</p>
+</blockquote>
+
+<hr>
+
+<h2 id="intro-section">一、引言：HDR与色调映射</h2>
+
+<h3 id="problem-def">1.1 问题定义</h3>
+
+<p>真实世界场景亮度跨度可达 10<sup>14</sup>（从星光到阳光直射），而传统显示器仅能呈现约 10<sup>2</sup>~10<sup>3</sup> 的动态范围。色调映射算子（Tone Mapping Operator, TMO）的数学定义：</p>
+
+<p style="text-align:center"><strong>I<sub>out</sub>(x,y) = T [ I<sub>in</sub>(x,y) ]</strong></p>
+
+<p>其中 I<sub>in</sub> 为HDR输入（线性辐射度，通常 32-bit 浮点），I<sub>out</sub> 为LDR输出（显示驱动值，0~255），T 为色调映射算子。核心约束：<strong>在压缩动态范围的同时保持原始场景的视觉外观</strong>——对比度、细节、亮度层次感。</p>
+
+<h3 id="tmo-class">1.2 算法分类体系</h3>
+
+<table>
+<thead><tr><th>类别</th><th>核心思想</th><th>代表算法</th><th>时间</th></tr></thead>
+<tbody>
+<tr><td><strong>全局算子</strong></td><td>统一映射函数 f(L)</td><td>Reinhard, Drago, Ward</td><td>2002-2003</td></tr>
+<tr><td><strong>局部算子</strong></td><td>空间自适应 f(L, x, y)</td><td>Durand-Dorsey, Reinhard Local</td><td>2002</td></tr>
+<tr><td><strong>频率域方法</strong></td><td>多尺度分解与重建</td><td>Farbman WLS, Durand Bilateral</td><td>2002-2008</td></tr>
+<tr><td><strong>梯度域方法</strong></td><td>梯度衰减+泊松重建</td><td>Fattal Gradient Domain</td><td>2002</td></tr>
+<tr><td><strong>感知驱动</strong></td><td>HVS模型优化</td><td>Mantiuk VDP, Ward Histogram</td><td>1997-2006</td></tr>
+<tr><td><strong>深度学习方法</strong></td><td>CNN/GAN端到端</td><td>Kalantari, DeepTone, HDR-Net</td><td>2017-</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2 id="global-tmo">二、全局色调映射算子</h2>
+
+<p>全局算子对每个像素应用相同映射函数，计算复杂度 O(N)，是实时应用的首选。</p>
+
+<h3 id="reinhard">2.1 Reinhard 摄影学全局算子 (SIGGRAPH 2002)</h3>
+
+<p>Erik Reinhard 等人的里程碑式工作，奠定了数字摄影Tone Mapping的基础范式。灵感来源于Ansel Adams的Zone System曝光理论。</p>
+
+<h4>算法推导</h4>
+
+<p><strong>Step 1 — 场景Key值计算（对数平均亮度）</strong></p>
+
+<p style="text-align:center"><strong>L&#772;<sub>w</sub> = exp( (1/N) &Sigma;<sub>x,y</sub> log(&delta; + L<sub>w</sub>(x,y)) )</strong></p>
+
+<p>其中 L<sub>w</sub> 为世界空间亮度（cd/m²），&delta; = 0.0001 防止 log(0)。L&#772;<sub>w</sub> 表征场景的整体"亮暗程度"（Key Value）。</p>
+
+<p><strong>Step 2 — 曝光缩放（Key Adjustment）</strong></p>
+
+<p style="text-align:center"><strong>L<sub>s</sub>(x,y) = (&alpha; / L&#772;<sub>w</sub>) &middot; L<sub>w</sub>(x,y)</strong></p>
+
+<p>其中 &alpha; 为Key参数：&alpha; = 0.18（中灰/正常Key），0.36~0.72（高Key/明亮场景），0.09~0.18（低Key/暗调场景）。</p>
+
+<p><strong>Step 3 — 压缩函数（Compressive S-curve）</strong></p>
+
+<p style="text-align:center"><strong>L<sub>d</sub>(x,y) = L<sub>s</sub>(x,y) / (1 + L<sub>s</sub>(x,y))</strong></p>
+
+<p>对于高光白点 L<sub>white</sub>，改进后的公式为：</p>
+
+<p style="text-align:center"><strong>L<sub>d</sub>(x,y) = L<sub>s</sub>(x,y) &middot; (1 + L<sub>s</sub>(x,y) / L<sup>2</sup><sub>white</sub>) / (1 + L<sub>s</sub>(x,y))</strong></p>
+
+<h4>伪代码</h4>
+
+<pre><code>ALGORITHM: Reinhard Global TMO
+Input:  HDR radiance L_w[H][W], key a=0.18, white Lw=1e5
+Output: LDR display luminance L_d[H][W]
+
+ 1  sum_log = 0.0
+ 2  for x = 0 to W-1:
+ 3      for y = 0 to H-1:
+ 4          sum_log += log(1e-4 + L_w[y][x])
+ 5  L_w_bar = exp(sum_log / (W * H))         // Scene key
+ 6
+ 7  for x = 0 to W-1:
+ 8      for y = 0 to H-1:
+ 9          L_s = (a / L_w_bar) * L_w[y][x]  // Scale by key
+10          L_s2 = L_s * L_s
+11          L_d[y][x] = L_s * (1 + L_s2 / (Lw * Lw)) / (1 + L_s)
+12
+13  return L_d
+</code></pre>
+
+<p><strong>复杂度：</strong>O(N)，N = 像素数。内存开销极小，适合实时视频处理。</p>
+
+<h3 id="drago">2.2 Drago 自适应对数算子 (2003)</h3>
+
+<p>Drago 等人提出使用对数底数的自适应变化覆盖更宽的亮度范围。核心创新：<strong>底数随局部亮度变化的自适应对数映射</strong>。</p>
+
+<p style="text-align:center"><strong>L<sub>d</sub> = log<sub>b(x,y)</sub>(1 + L<sub>w</sub>) / log<sub>b(x,y)</sub>(1 + L<sub>max</sub>)</strong></p>
+
+<p style="text-align:center"><strong>b(x,y) = 2 + (L<sub>w</sub>(x,y) / L<sub>max</sub>)<sup>p</sup> &middot; (b<sub>max</sub> &minus; 2)</strong></p>
+
+<p>暗区使用较小底数（强压缩），亮区使用较大底数（弱压缩），实现了<strong>隐式的局部自适应</strong>而无需求解昂贵的空间滤波。参数 p ≈ 0.85~1.0（Gamma 校正因子），b<sub>max</sub> ≈ 10。</p>
+
+<hr>
+
+<h2 id="local-tmo">三、局部色调映射算子</h2>
+
+<h3 id="durand-bf">3.1 Durand &amp; Dorsey 双边滤波框架 (SIGGRAPH 2002)</h3>
+
+<p>Fredo Durand 和 Julie Dorsey 提出的<strong>Base-Detail 分解框架</strong>——将图像分解为Base层（大尺度照度变化）和Detail层（纹理/反射率细节），仅压缩Base层——成为此后二十年局部TMO设计的标准范式。</p>
+
+<h4>核心分解</h4>
+
+<p style="text-align:center"><strong>I = Base + Detail</strong></p>
+<p style="text-align:center"><strong>I<sub>out</sub> = compress(Base) + Detail</strong></p>
+
+<p>使用<strong>双边滤波器</strong>进行分解，因其独特的边缘保持平滑特性。双边滤波器定义：</p>
+
+<p style="text-align:center"><strong>BF[I]<sub>p</sub> = (1/W<sub>p</sub>) &Sigma;<sub>q&isin;S</sub> G<sub>&sigma;s</sub>(||p&minus;q||) G<sub>&sigma;r</sub>(|I<sub>p</sub>&minus;I<sub>q</sub>|) I<sub>q</sub></strong></p>
+
+<ul>
+<li><strong>G<sub>&sigma;s</sub>（空间核）：</strong>高斯函数，参数 &sigma;<sub>s</sub> 控制空间影响范围（典型值：图像对角线的2%~5%）</li>
+<li><strong>G<sub>&sigma;r</sub>（值域核）：</strong>高斯函数，参数 &sigma;<sub>r</sub> 控制亮度相似度阈值（典型值：0.4，在对数域）</li>
+<li><strong>边缘保持机制：</strong>跨边缘的像素 I<sub>p</sub> 与 I<sub>q</sub> 差异大 → G<sub>&sigma;r</sub> → 0 → 不参与平均，从而边缘不被模糊</li>
+</ul>
+
+<h4>伪代码</h4>
+
+<pre><code>ALGORITHM: Durand-Dorsey Local TMO
+Input:  HDR luminance L (linear), sigma_s, sigma_r, compression c
+Output: LDR display luminance L_out
+
+ 1  L_log = log10(L + eps)                    // Log domain processing
+ 2
+ 3  Base = BilateralFilter(L_log, sigma_s, sigma_r)
+ 4  Detail = L_log - Base                      // Detail extraction
+ 5
+ 6  Base_c = c * Base + offset                 // Compress base only
+ 7
+ 8  L_out_log = Base_c + Detail                // Preserve detail
+ 9  L_out = 10 ^ L_out_log                     // Back to linear
+10  L_out = L_out / max(L_out)                 // Normalize to [0, 1]
+11
+12  return L_out
+</code></pre>
+
+<p><strong>复杂度分析：</strong>原始双边滤波 O(Nr²)（r为滤波半径）；使用加速方案（如Durand的线性近似）可降至 O(N)。Halo伪影是主要短板——&sigma;<sub>r</sub> 过小时边缘附近出现光晕。</p>
+
+<h3 id="reinhard-local">3.2 Reinhard 摄影学局部算子（Dodging-and-Burning）</h3>
+
+<p>模拟传统暗房的局部曝光控制技术：</p>
+
+<p style="text-align:center"><strong>L<sub>d</sub>(x,y) = L<sub>s</sub>(x,y) / (1 + V<sub>1</sub>(x,y, s<sub>m</sub>))</strong></p>
+
+<p>其中 V<sub>1</sub>(x,y, s<sub>m</sub>) 为在尺度 s<sub>m</sub> 下高斯滤波后的局部平均亮度。通过选择邻域最大对比度对应的尺度 s<sub>m</sub> 来实现局部自适应。</p>
+
+<hr>
+
+<h2 id="gradient-domain">四、梯度域与频率域方法</h2>
+
+<h3 id="fattal">4.1 Fattal 梯度域算子 (SIGGRAPH 2002)</h3>
+
+<p>Raanan Fattal 等人提出在<strong>梯度域</strong>而非亮度域进行动态范围压缩——这是对Tone Mapping问题的一次根本性重构。</p>
+
+<h4>核心流程</h4>
+
+<ol>
+<li>计算亮度对数域梯度场：<strong>G(x,y) = &nabla; log(L(x,y))</strong></li>
+<li>在不同尺度 k 上构造衰减函数 &Phi;<sub>k</sub>，衰减大幅值梯度</li>
+<li>求解泊松方程重建亮度图像</li>
+</ol>
+
+<h4>梯度多尺度衰减</h4>
+
+<p style="text-align:center"><strong>&Phi;<sub>k</sub>(x,y) = (&nabla;H<sub>k</sub> / ||&nabla;H<sub>k</sub>||) &middot; &alpha;<sup>k</sup> &middot; (||&nabla;H<sub>k</sub>|| / &alpha;<sup>k</sup>)<sup>&beta;</sup></strong></p>
+
+<p>其中 &beta; &lt; 1（典型值 0.8~0.9）确保大幅值梯度被相对衰减，&alpha; &asymp; 0.1×平均梯度幅值。</p>
+
+<h4>泊松重建</h4>
+
+<p style="text-align:center"><strong>&nabla;<sup>2</sup> I<sub>out</sub> = div(&Phi;)</strong></p>
+
+<p style="text-align:center"><strong>I<sub>out</sub> = (&nabla;<sup>2</sup>)<sup>&minus;1</sup> div(&Phi;)</strong></p>
+
+<h4>伪代码</h4>
+
+<pre><code>ALGORITHM: Fattal Gradient Domain TMO
+Input:  HDR luminance L, num_scales K, alpha, beta
+Output: LDR luminance L_out
+
+ 1  H = log10(L + eps)
+ 2
+ 3  // Multi-scale gradient attenuation
+ 4  for k = 0 to K-1:
+ 5      H_k = GaussianConvolve(H, sigma_k)     // Scale k
+ 6      G_k = Gradient(H_k)                    // Gradient field
+ 7      for each pixel p:
+ 8          mag = ||G_k(p)||
+ 9          phi = pow(alpha, k) * pow(mag / pow(alpha, k), beta)
+10          Phi_k(p) = (G_k(p) / mag) * phi    // Attenuated gradient
+11
+12  // Poisson reconstruction via multigrid solver
+13  Div = Divergence(sum(Phi_k))
+14  L_out_log = PoissonSolver(Div)             // Solve Laplacian
+15  L_out = 10 ^ L_out_log
+16  L_out = L_out / max(L_out)
+17
+18  return L_out
+</code></pre>
+
+<p><strong>优势：</strong>极好保持局部对比度，尤其适合纹理丰富的场景。<br><strong>劣势：</strong>可能过度增强平坦区域噪声；参数 (&alpha;, &beta;) 需要针对场景调优。</p>
+
+<h3 id="farbman-wls">4.2 Farbman WLS 多尺度分解 (SIGGRAPH 2008)</h3>
+
+<p>Farbman 等人提出的加权最小二乘（WLS）框架为多尺度分解提供了优雅的变分优化形式：</p>
+
+<p style="text-align:center"><strong>min<sub>u</sub> &Sigma;<sub>p</sub> ( (u<sub>p</sub> &minus; g<sub>p</sub>)² + &lambda; &Sigma;<sub>*&isin;{x,y}</sub> w<sub>*,p</sub>(g) (&nabla;<sub>*,p</sub> u)² )</strong></p>
+
+<p>其中：</p>
+<ul>
+<li><strong>数据项：</strong>(u<sub>p</sub> &minus; g<sub>p</sub>)² 保持与原图 g 接近</li>
+<li><strong>平滑项：</strong>w<sub>*,p</sub> = (|&nabla;<sub>*,p</sub> g|<sup>&alpha;</sup> + &epsilon;)<sup>&minus;1</sup>，在边缘处权重趋近于0（不平滑），平坦处正常平滑</li>
+<li>&lambda; 控制全局平滑程度——&lambda; 越大越平滑（对应大尺度层）</li>
+</ul>
+
+<p>WLS 的优势：通过调整 &lambda; <strong>连续控制分解尺度</strong>，可构建任意层数的多尺度金字塔，非常适合精细的Tone Mapping参数调优。</p>
+
+<hr>
+
+<h2 id="perceptual-tmo">五、感知驱动与显示建模方法</h2>
+
+<h3 id="ward-hist">5.1 Ward 直方图调整与眩光模型 (1997)</h3>
+
+<p>Greg Ward 的开拓性工作——第一个显式模拟人类视觉系统特性的TMO：</p>
+<ul>
+<li><strong>眩光（Glare）模拟：</strong>在亮度计算中加入散射光分量，模拟眼内散射</li>
+<li><strong>直方图调整：</strong>基于亮度直方图均衡化调整整体对比度分布</li>
+<li><strong>可见度保持：</strong>确保映射后仍能分辨 JND 级亮度差异</li>
+</ul>
+
+<h3 id="mantiuk-framework">5.2 Mantiuk 感知优化框架 (2006)</h3>
+
+<p>Mantiuk 等人将Tone Mapping形式化为优化问题——最小化HDR与Tone-Mapped图像在人类视觉模型下的感知差异：</p>
+
+<p style="text-align:center"><strong>T* = argmin<sub>T</sub> || V[HDR] &minus; V[T(HDR)] ||<sub>CSF</sub></strong></p>
+
+<p>其中 V 为视觉差异预测器（VDP），显式模拟人眼CSF（对比度敏感函数）和亮度掩蔽特性。此框架理论上能给出<strong>感知最优</strong>的Tone Mapping结果。</p>
+
+<hr>
+
+<h2 id="deep-tmo">六、深度学习方法</h2>
+
+<h3 id="kalantari-deep">6.1 Kalantari et al. — Deep HDR (SIGGRAPH 2017)</h3>
+
+<p>首个端到端深度学习HDR成像+Tone Mapping框架：</p>
+<ul>
+<li>CNN 从多曝光 LDR 到 HDR 的融合（含光流对齐）</li>
+<li>第二个 CNN 执行 Tone Mapping（学习专业摄影师的映射风格）</li>
+</ul>
+
+<h3 id="hdrnet">6.2 HDR-Net (Gharbi et al., SIGGRAPH 2017)</h3>
+
+<p>深度双边网格 + 轻量级 CNN，在手机端实现 &lt;50ms 实时推理，是商用的代表性方案。核心创新：<strong>在低分辨率双边网格中学习局部仿射变换系数</strong>，再上采样引导全分辨率处理。</p>
+
+<h3 id="deep-learning-comparison">6.3 方法对比</h3>
+
+<table>
+<thead><tr><th>方法</th><th>年份</th><th>核心架构</th><th>推理速度</th><th>输入</th></tr></thead>
+<tbody>
+<tr><td>Kalantari et al.</td><td>2017</td><td>CNN + Optical Flow</td><td>~10s (GPU)</td><td>3 LDR exposures</td></tr>
+<tr><td>DeepTone (Endo)</td><td>2017</td><td>Inverse-Forward CNN</td><td>~1s (GPU)</td><td>Single LDR</td></tr>
+<tr><td>HDR-Net (Gharbi)</td><td>2017</td><td>Bilateral Grid CNN</td><td>&lt;50ms (Mobile GPU)</td><td>Single LDR</td></tr>
+<tr><td>Deep SR-ITM (Kim)</td><td>2019</td><td>GAN + Perceptual Loss</td><td>~500ms (GPU)</td><td>Single LDR</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2 id="quality-metrics">七、质量评价体系</h2>
+
+<h3 id="subjective-metrics">7.1 主观评价维度</h3>
+<ul>
+<li><strong>整体自然度：</strong>图像是否"自然"而非"被处理过"</li>
+<li><strong>细节可见性：</strong>暗部和亮部细节是否可分辨——关键指标</li>
+<li><strong>全局对比度保真：</strong>亮度层次关系是否被保持</li>
+<li><strong>无伪影：</strong>光晕(Halo)、梯度反转、色度偏移、噪声放大</li>
+</ul>
+
+<h3 id="objective-metrics">7.2 客观评价指标</h3>
+
+<table>
+<thead><tr><th>指标</th><th>提出者</th><th>年份</th><th>核心测量</th></tr></thead>
+<tbody>
+<tr><td><strong>TMQI</strong></td><td>Yeganeh &amp; Wang</td><td>2012</td><td>结构保真度 + 统计自然度（NSS）</td></tr>
+<tr><td><strong>FSITM</strong></td><td>Nafchi et al.</td><td>2014</td><td>局部相位一致性（Gabor特征）</td></tr>
+<tr><td><strong>HDR-VDP-2</strong></td><td>Mantiuk et al.</td><td>2011</td><td>感知可见差异概率图（CSF+掩蔽）</td></tr>
+<tr><td><strong>BTMQI</strong></td><td>Gu et al.</td><td>2016</td><td>TMQI的盲参考扩展（无需HDR原图）</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2 id="comparison-table">八、经典算法综合对比</h2>
+
+<table>
+<thead><tr><th>算法</th><th>类型</th><th>复杂度</th><th>优势</th><th>局限</th><th>适用场景</th></tr></thead>
+<tbody>
+<tr><td><strong>Reinhard (2002)</strong></td><td>全局</td><td>O(N)</td><td>快速、自然、参数直观</td><td>高对比度区细节丢失</td><td>一般摄影、实时预览</td></tr>
+<tr><td><strong>Drago (2003)</strong></td><td>全局</td><td>O(N)</td><td>自适应底数改善暗部</td><td>仍受全局限制</td><td>高动态夜景</td></tr>
+<tr><td><strong>Durand-Dorsey</strong></td><td>局部</td><td>O(N r²)</td><td>边缘保持优异</td><td>Halo风险、参数调节</td><td>建筑摄影、细节优先</td></tr>
+<tr><td><strong>Fattal Gradient</strong></td><td>梯度域</td><td>O(N log N)</td><td>极好保持局部对比度</td><td>可能过增强、参数敏感</td><td>纹理丰富场景</td></tr>
+<tr><td><strong>Farbman WLS</strong></td><td>频率域</td><td>O(N³/²)</td><td>优化框架优雅、可控</td><td>稀疏矩阵求解开销</td><td>研究平台、离线处理</td></tr>
+<tr><td><strong>Mantiuk VDP</strong></td><td>感知</td><td>O(N log N)</td><td>感知最优理论保证</td><td>模型参数复杂</td><td>高质量显示、医学</td></tr>
+<tr><td><strong>HDR-Net (2017)</strong></td><td>CNN</td><td>O(N) 推理</td><td>实时、可学习风格</td><td>需训练数据、可解释性</td><td>手机摄影、实时视频</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2 id="future">九、未来展望</h2>
+
+<ol>
+<li><strong>显示自适应TMO：</strong>根据目标显示的峰值亮度、环境光、色域等参数自适应调整映射策略</li>
+<li><strong>语义感知映射：</strong>结合场景理解（人脸、天空、文字）对不同语义区域施以差异化处理</li>
+<li><strong>实时神经TMO：</strong>基于轻量级神经网络在移动端实现实时高质量Tone Mapping</li>
+<li><strong>HDR-WCG-HFR联合优化：</strong>将高动态范围、广色域、高帧率的协同处理纳入统一框架</li>
+<li><strong>物理可解释AI-TMO：</strong>赋予深度学习TMO以视觉心理物理学可解释性，弥合数据驱动与传统模型之间的鸿沟</li>
+</ol>
+
+<hr>
+
+<h2 id="references">参考文献</h2>
+
+<ol>
+<li>Reinhard, E., Stark, M., Shirley, P., &amp; Ferwerda, J. (2002). "Photographic tone reproduction for digital images." <em>ACM Trans. Graph. (SIGGRAPH),</em> 21(3), 267-276. <a href="https://doi.org/10.1145/566654.566575" target="_blank">DOI</a> [引用: 5000+]</li>
+<li>Durand, F., &amp; Dorsey, J. (2002). "Fast bilateral filtering for the display of high-dynamic-range images." <em>ACM Trans. Graph. (SIGGRAPH),</em> 21(3), 257-266. <a href="https://doi.org/10.1145/566654.566574" target="_blank">DOI</a> [引用: 4000+]</li>
+<li>Fattal, R., Lischinski, D., &amp; Werman, M. (2002). "Gradient domain high dynamic range compression." <em>ACM Trans. Graph. (SIGGRAPH),</em> 21(3), 249-256. <a href="https://doi.org/10.1145/566654.566573" target="_blank">DOI</a> [引用: 3000+]</li>
+<li>Drago, F., Myszkowski, K., Annen, T., &amp; Chiba, N. (2003). "Adaptive logarithmic mapping for displaying high contrast scenes." <em>Computer Graphics Forum,</em> 22(3), 419-426. <a href="https://doi.org/10.1111/1467-8659.00689" target="_blank">DOI</a></li>
+<li>Farbman, Z., Fattal, R., Lischinski, D., &amp; Szeliski, R. (2008). "Edge-preserving decompositions for multi-scale tone and detail manipulation." <em>ACM Trans. Graph. (SIGGRAPH),</em> 27(3), 1-10. <a href="https://doi.org/10.1145/1360612.1360666" target="_blank">DOI</a></li>
+<li>Mantiuk, R., Myszkowski, K., &amp; Seidel, H. P. (2006). "A perceptual framework for contrast processing of high dynamic range images." <em>ACM Trans. Applied Perception,</em> 3(3), 286-308. <a href="https://doi.org/10.1145/1166087.1166091" target="_blank">DOI</a></li>
+<li>Ward, G., Rushmeier, H., &amp; Piatko, C. (1997). "A visibility matching tone reproduction operator for high dynamic range scenes." <em>IEEE TVCG,</em> 3(4), 291-306. <a href="https://doi.org/10.1109/2945.646233" target="_blank">DOI</a></li>
+<li>Kalantari, N. K., &amp; Ramamoorthi, R. (2017). "Deep high dynamic range imaging of dynamic scenes." <em>ACM Trans. Graph. (SIGGRAPH),</em> 36(4), 1-12. <a href="https://doi.org/10.1145/3072959.3073609" target="_blank">DOI</a></li>
+<li>Gharbi, M., Chen, J., Barron, J. T., Hasinoff, S. W., &amp; Durand, F. (2017). "Deep bilateral learning for real-time image enhancement." <em>ACM Trans. Graph. (SIGGRAPH),</em> 36(4), 1-12. <a href="https://doi.org/10.1145/3072959.3073592" target="_blank">DOI</a></li>
+<li>Eilertsen, G., Mantiuk, R. K., &amp; Unger, J. (2017). "A comparative review of tone-mapping algorithms for HDR video." <em>Computer Graphics Forum,</em> 36(2), 565-592. <a href="https://doi.org/10.1111/cgf.13148" target="_blank">DOI</a></li>
+<li>Yeganeh, H., &amp; Wang, Z. (2012). "Objective quality assessment of tone-mapped images." <em>IEEE TIP,</em> 22(2), 657-667. <a href="https://doi.org/10.1109/TIP.2012.2221725" target="_blank">DOI</a></li>
+<li>Reinhard, E., Heidrich, W., Debevec, P., Pattanaik, S., Ward, G., &amp; Myszkowski, K. (2010). <em>High Dynamic Range Imaging, 2nd Edition.</em> Morgan Kaufmann. <a href="https://doi.org/10.1016/C2009-0-20133-4" target="_blank">DOI</a></li>
+<li>Mantiuk, R., Kim, K. J., Rempel, A. G., &amp; Heidrich, W. (2011). "HDR-VDP-2: A calibrated visual metric for visibility and quality predictions." <em>ACM Trans. Graph. (SIGGRAPH),</em> 30(4), 1-14. <a href="https://doi.org/10.1145/2010324.1964935" target="_blank">DOI</a></li>
+</ol>
+</div>
+<hr/>
+<div>
+<div class="post-metas my-3">
+  <div class="post-meta mr-3 d-flex align-items-center">
+    <i class="iconfont icon-category"></i>
+<span class="category-chains">
+  <span class="category-chain">
+  <a href="/categories/%E9%A2%9C%E8%89%B2%E7%A7%91%E5%AD%A6/" class="category-chain-item">颜色科学</a>
+  </span>
+</span>
+  </div>
+  <div class="post-meta">
+    <i class="iconfont icon-tags"></i>
+      <a href="/tags/%E9%A2%9C%E8%89%B2%E7%A7%91%E5%AD%A6/" class="print-no-link">#颜色科学</a>
+      <a href="/tags/%E8%89%B2%E5%BA%A6%E5%AD%A6/" class="print-no-link">#HDR</a>
+      <a href="/tags/%E8%89%B2%E9%80%82%E5%BA%94/" class="print-no-link">#Tone Mapping</a>
+      <a href="/tags/HDR/" class="print-no-link">#HDR</a>
+  </div>
+</div>
+
+<div class="license-box my-3">
+  <div class="license-title">
+    <div>HDR色调映射经典算法综述</div>
+    <div>https://tauborzhang.github.io/2025/06/06/HDR色调映射经典算法综述/</div>
+  </div>
+  <div class="license-meta">
+    <div class="license-meta-item"><div>作者</div><div>Taubor</div></div>
+    <div class="license-meta-item license-meta-date"><div>发布于</div><div>2025年6月6日</div></div>
+    <div class="license-meta-item"><div>许可协议</div><div><a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/"><span class="hint--top hint--rounded" aria-label="BY - 署名"><i class="iconfont icon-cc-by"></i></span></a></div></div>
+  </div>
+  <div class="license-icon iconfont"></div>
+</div>
+
+<div class="post-prevnext my-3">
+  <article class="post-prev col-6"></article>
+  <article class="post-next col-6"><a href="/2025/06/06/HDR%E8%89%B2%E8%B0%83%E6%98%A0%E5%B0%84%E7%BB%8F%E5%85%B8%E7%AE%97%E6%B3%95%E7%BB%BC%E8%BF%B0/" title="HDR色调映射经典算法综述">颜色科学基础概念与原理</a></article>
+</div>
+</div>
+
+
+<article id="comments" lazyload>
+<div id="valine"></div>
+<script type="text/javascript">
+  Fluid.utils.loadComments('#valine', function() {
+    Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+      var options = Object.assign(
+        {"appId":"UquWwkgz9AwjqWrZ7ri4KzgA-gzGzoHsz","appKey":"CmP1ig7lMEE9eyUUR3J3nfoz","path":"window.location.pathname","placeholder":null,"avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+        { el: "#valine", path: window.location.pathname }
+      )
+      new Valine(options);
+    });
+  });
+</script>
+<noscript>Please enable JavaScript to view the comments</noscript>
+</article>
+</article>
+</div>
+</div>
+</div>
+<div class="side-col d-none d-lg-block col-lg-2">
+<aside class="sidebar" style="margin-left: -1rem">
+<div id="toc"><p class="toc-header"><i class="iconfont icon-list"></i><span>目录</span></p>
+<div class="toc-body" id="toc-body"></div></div>
+</aside>
+</div>
+</div>
+</div>
+</main>
+<footer><div class="footer-inner"><div class="footer-content"><a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a></div></div></footer>
+<script src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js"></script>
+<link rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+<script>NProgress.configure({"showSpinner":false,"trickleSpeed":100});NProgress.start();window.addEventListener('load',function(){NProgress.done();})</script>
+<script src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js"></script>
+<script src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js"></script>
+<script src="/js/events.js"></script>
+<script src="/js/plugins.js"></script>
+<script src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js"></script>
+<script>(function(w,d){var t=Fluid.plugins.typing;var s=document.getElementById('subtitle');if(!s||!t)return;t(s.getAttribute('data-typed-text'));})(window,document);</script>
+<script src="/js/img-lazyload.js"></script>
+<script>Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js',function(){var t=jQuery('#toc');if(t.length===0||!window.tocbot)return;var b=jQuery('#board-ctn');var bt=b.offset().top;window.tocbot.init(Object.assign({tocSelector:'#toc-body',contentSelector:'.markdown-body',linkClass:'tocbot-link',activeLinkClass:'tocbot-active-link',listClass:'tocbot-list',isCollapsedClass:'tocbot-is-collapsed',collapsibleClass:'tocbot-is-collapsible',scrollSmooth:true,includeTitleTags:true,headingsOffset:-bt},CONFIG.toc));if(t.find('.toc-list-item').length>0)t.css('visibility','visible');});</script>
+<script src="https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js"></script>
+<script>Fluid.plugins.codeWidget();</script>
+<script>Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js',function(){window.anchors.options={placement:CONFIG.anchorjs.placement,visible:CONFIG.anchorjs.visible};if(CONFIG.anchorjs.icon)window.anchors.options.icon=CONFIG.anchorjs.icon;var el=(CONFIG.anchorjs.element||'h1,h2,h3,h4,h5,h6').split(',');var res=[];for(var i of el)res.push('.markdown-body > '+i.trim());if(CONFIG.anchorjs.placement==='left')window.anchors.options.class='anchorjs-link-left';window.anchors.add(res.join(', '));});</script>
+<script>Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js',function(){Fluid.plugins.fancyBox();});</script>
+<script>Fluid.plugins.imageCaption();</script>
+<script defer src="/js/leancloud.js"></script>
+<script src="/js/local-search.js"></script>
+<script src="/js/boot.js"></script>
+<noscript><div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div></noscript>
+</body>
+</html>
