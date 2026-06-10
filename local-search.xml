@@ -52,4 +52,13 @@
       <tag>HDR</tag><tag>Tone Mapping</tag><tag>计算摄影</tag><tag>算法</tag>
     </tags>
   </entry>
+
+  <entry>
+    <title>对比度敏感函数在HDR编码中的应用</title>
+    <url>/2024/06/15/CSF%E5%9C%A8HDR%E7%BC%96%E7%A0%81%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/index.html</url>
+    <content><![CDATA[CSF在HDR编码中的应用——从Weber-Fechner定律到Barten CSF模型，深入解析PQ的推导与验证。]]></content>
+    <categories><category>颜色科学</category></categories>
+    <tags><tag>HDR</tag><tag>CSF</tag><tag>色度学</tag><tag>视觉科学</tag></tags>
+  </entry>
+
 </search>
